@@ -1,0 +1,5 @@
+{
+  "name": "SDSM Designer - Sistema de Diseño de Sendas Modular",
+  "description": "Una herramienta interactiva para diseñar Sendas personalizadas para el Sistema PAPA, gestionando presupuestos de Puntos de Senda (PS), módulos de habilidades y reglas de construcción.",
+  "requestFramePermissions": []
+}
