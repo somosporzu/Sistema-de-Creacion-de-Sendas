@@ -5,10 +5,12 @@ import {
   EnergyType, 
   Skill, 
   SkillType, 
-  SKILL_CONFIG, 
+  SKILL_CONFIG,
+  EquipmentItem
 } from './types';
 import { ENERGY_LIST, CATEGORIES_LIST, MODULE_CATALOG, FULL_CONCEPTS_LIST, RESISTANCE_BASE_COSTS } from './constants';
 import SkillDesigner from './components/SkillDesigner';
+import { TrashIcon } from './components/Icons';
 
 const INITIAL_SKILLS: Skill[] = [
   { id: 'init-1', range: 'Inicial', name: 'Habilidad Inicial', description: '', type: SkillType.Pasiva, selectedModules: [], resistanceModifier: 0, limitedUses: 0, thematicRestriction: false, increasedPower: false },
@@ -25,13 +27,16 @@ const CONCEPT_TABS = ["Marcial", "Social", "Productivo", "Espiritual", "Intelect
 const App: React.FC = () => {
   const [step, setStep] = useState(1);
   const [activeConceptTab, setActiveConceptTab] = useState("Marcial");
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemCost, setNewItemCost] = useState(0);
+
   const [path, setPath] = useState<Path>({
     name: '',
     fantasy: '',
     isHybrid: false,
     energies: [],
     concepts: [],
-    equipment: '',
+    equipment: [],
     affinityCategories: [],
     foreignCategories: [],
     skills: INITIAL_SKILLS
@@ -59,6 +64,24 @@ const App: React.FC = () => {
     return spent;
   };
 
+  const addEquipmentItem = () => {
+    if (!newItemName) return;
+    const newItem: EquipmentItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newItemName,
+      cost: newItemCost
+    };
+    setPath(prev => ({ ...prev, equipment: [...prev.equipment, newItem] }));
+    setNewItemName("");
+    setNewItemCost(0);
+  };
+
+  const removeEquipmentItem = (id: string) => {
+    setPath(prev => ({ ...prev, equipment: prev.equipment.filter(i => i.id !== id) }));
+  };
+
+  const totalEquipmentCost = path.equipment.reduce((sum, item) => sum + item.cost, 0);
+
   const generateFichaText = () => {
     let text = `═══════════════════════════════════════════════════\n`;
     text += `SENDA: ${path.name || 'SIN NOMBRE'}\n`;
@@ -66,6 +89,18 @@ const App: React.FC = () => {
     text += `CONCEPTO: ${path.fantasy || 'Sin descripción'}\n`;
     text += `AFINIDAD: ${path.energies.join(' / ') || 'Ninguna'}\n`;
     text += `CONCEPTOS: ${path.concepts.join(', ') || 'Ninguno'}\n\n`;
+    
+    text += `EQUIPO INICIAL (Presupuesto 150L):\n`;
+    if (path.equipment.length === 0) {
+      text += `- Sin equipo registrado.\n`;
+    } else {
+      path.equipment.forEach(item => {
+        text += `- ${item.name} (${item.cost}L)\n`;
+      });
+      text += `Total: ${totalEquipmentCost}L / 150L\n`;
+    }
+    text += `\n`;
+
     text += `COSTES MODIFICADOS:\n`;
     text += `- Afines: ${path.affinityCategories.join(', ') || 'N/A'}\n`;
     text += `- Ajenos: ${path.foreignCategories.join(', ') || 'N/A'}\n\n`;
@@ -155,13 +190,13 @@ const App: React.FC = () => {
       </header>
 
       <nav className="flex justify-between mb-12 bg-white p-2 rounded-full border border-amber-900/10 shadow-sm overflow-x-auto no-scrollbar">
-        {[1, 2, 3, 4, 5, 6].map(s => (
+        {[1, 2, 3, 4, 5, 6, 7].map(s => (
           <button
             key={s}
             onClick={() => setStep(s)}
             className={`flex-1 min-w-[80px] py-3 rounded-full font-bold text-xs md:text-sm transition-all ${step === s ? 'bg-amber-700 text-white shadow-md' : 'text-amber-900 hover:bg-amber-50'}`}
           >
-            {s === 6 ? 'FICHA' : `Paso ${s}`}
+            {s === 7 ? 'FICHA' : `Paso ${s}`}
           </button>
         ))}
       </nav>
@@ -210,54 +245,111 @@ const App: React.FC = () => {
         )}
 
         {step === 3 && (
-          <div className="max-w-5xl mx-auto animate-in fade-in">
-            <h2 className="text-3xl font-bold fantasy-font text-amber-900 mb-6">3. Conceptos y Equipo PAPA</h2>
+          <div className="max-w-3xl mx-auto animate-in fade-in">
+            <h2 className="text-3xl font-bold fantasy-font text-amber-900 mb-6">3. Conceptos Base</h2>
+            <div className="flex justify-between items-end mb-4">
+              <label className="text-xs font-bold text-amber-900 uppercase tracking-widest">Elige hasta 3 conceptos</label>
+              <span className="text-[10px] font-bold text-amber-700">{path.concepts.length}/3 Seleccionados</span>
+            </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-              <div className="space-y-4">
-                <div className="flex justify-between items-end mb-2">
-                  <label className="text-xs font-bold text-amber-900 uppercase tracking-widest">Conceptos Base</label>
-                  <span className="text-[10px] font-bold text-amber-700">{path.concepts.length}/3 Seleccionados</span>
-                </div>
-                
-                <div className="flex flex-wrap gap-1 mb-4 bg-amber-50 p-1 rounded-lg border border-amber-100">
-                  {CONCEPT_TABS.map(tab => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveConceptTab(tab)}
-                      className={`flex-1 py-1.5 px-2 text-[10px] font-bold rounded transition-all ${activeConceptTab === tab ? 'bg-amber-700 text-white shadow-sm' : 'text-amber-900 hover:bg-amber-100'}`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
+            <div className="flex flex-wrap gap-1 mb-4 bg-amber-50 p-1 rounded-lg border border-amber-100">
+              {CONCEPT_TABS.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveConceptTab(tab)}
+                  className={`flex-1 py-2 px-2 text-[10px] font-bold rounded transition-all ${activeConceptTab === tab ? 'bg-amber-700 text-white shadow-sm' : 'text-amber-900 hover:bg-amber-100'}`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
-                <div className="grid grid-cols-2 gap-2 h-80 overflow-y-auto pr-2 border-r border-amber-100">
-                  {filteredConcepts.map(c => (
-                    <button key={c.name} onClick={() => toggleConcept(c.name)}
-                      className={`p-3 text-left rounded-lg border transition-all ${path.concepts.includes(c.name) ? 'bg-amber-700 text-white border-amber-700 shadow-md scale-[1.02]' : 'bg-white border-amber-100 hover:bg-amber-50'}`}>
-                      <div className="font-bold text-sm">{c.name}</div>
-                      <div className={`text-[9px] uppercase font-bold ${path.concepts.includes(c.name) ? 'text-amber-200' : 'text-slate-400'}`}>{c.type}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="block text-xs font-bold text-amber-900 uppercase tracking-widest">Equipo Inicial (150L)</label>
-                <textarea 
-                  value={path.equipment} onChange={(e) => setPath({ ...path, equipment: e.target.value })}
-                  placeholder="Ej: Espada Larga (30L)..."
-                  rows={10} className="w-full p-4 rounded-xl border border-amber-200 outline-none text-sm font-mono bg-white"
-                />
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 h-[450px] overflow-y-auto pr-2">
+              {filteredConcepts.map(c => (
+                <button key={c.name} onClick={() => toggleConcept(c.name)}
+                  className={`p-4 text-left rounded-xl border transition-all ${path.concepts.includes(c.name) ? 'bg-amber-700 text-white border-amber-700 shadow-md scale-[1.02]' : 'bg-white border-amber-100 hover:bg-amber-50'}`}>
+                  <div className="font-bold text-sm">{c.name}</div>
+                  <div className={`text-[9px] uppercase font-bold ${path.concepts.includes(c.name) ? 'text-amber-200' : 'text-slate-400'}`}>{c.type}</div>
+                </button>
+              ))}
             </div>
           </div>
         )}
 
         {step === 4 && (
           <div className="max-w-4xl mx-auto animate-in fade-in">
-            <h2 className="text-3xl font-bold fantasy-font text-amber-900 mb-6">4. Economía de Experiencia</h2>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-bold fantasy-font text-amber-900">4. Equipo Inicial (PAPA)</h2>
+              <div className={`px-6 py-2 rounded-full font-bold text-lg ${totalEquipmentCost > 150 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                {totalEquipmentCost} / 150L
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <div className="space-y-6">
+                <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200">
+                  <h4 className="font-bold text-amber-900 text-sm uppercase tracking-widest mb-4">Añadir Objeto</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase mb-1 block">Nombre del Objeto</label>
+                      <input 
+                        type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)}
+                        placeholder="Ej: Espada de Acero"
+                        className="w-full p-3 rounded-lg border border-amber-200 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase mb-1 block">Coste en L (Monedas)</label>
+                      <input 
+                        type="number" value={newItemCost} onChange={(e) => setNewItemCost(Number(e.target.value))}
+                        className="w-full p-3 rounded-lg border border-amber-200 outline-none"
+                      />
+                    </div>
+                    <button 
+                      onClick={addEquipmentItem}
+                      disabled={!newItemName}
+                      className="w-full bg-amber-700 text-white py-3 rounded-lg font-bold hover:bg-amber-600 transition-colors disabled:opacity-50"
+                    >
+                      Añadir al Inventario
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="block text-xs font-bold text-amber-900 uppercase tracking-widest">Lista de Equipo</label>
+                <div className="bg-white border border-amber-100 rounded-2xl h-[400px] overflow-y-auto shadow-inner">
+                  {path.equipment.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-slate-400 italic text-sm">
+                      No hay objetos añadidos
+                    </div>
+                  ) : (
+                    <div className="p-2 space-y-2">
+                      {path.equipment.map(item => (
+                        <div key={item.id} className="flex justify-between items-center p-3 bg-amber-50/30 rounded-lg border border-amber-100 group">
+                          <div>
+                            <span className="font-bold text-sm text-slate-800">{item.name}</span>
+                            <span className="ml-3 text-xs font-bold text-amber-700">{item.cost}L</span>
+                          </div>
+                          <button 
+                            onClick={() => removeEquipmentItem(item.id)}
+                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 5 && (
+          <div className="max-w-4xl mx-auto animate-in fade-in">
+            <h2 className="text-3xl font-bold fantasy-font text-amber-900 mb-6">5. Economía de Experiencia</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <section className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-200">
                 <h4 className="font-bold text-emerald-900 mb-4 uppercase text-xs tracking-widest">Categorías Afines (3)</h4>
@@ -285,9 +377,9 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <div className="animate-in fade-in">
-            <h2 className="text-3xl font-bold fantasy-font text-amber-900 mb-8">5. Diseño de Habilidades</h2>
+            <h2 className="text-3xl font-bold fantasy-font text-amber-900 mb-8">6. Diseño de Habilidades</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {path.skills.map((skill) => {
                 const budget = skill.range === 'Inicial' ? currentInitialBudget : SKILL_CONFIG[skill.range].budget;
@@ -320,7 +412,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <div className="max-w-4xl mx-auto animate-in fade-in">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-3xl font-bold fantasy-font text-amber-900">Vista de Ficha Final</h2>

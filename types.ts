@@ -41,6 +41,12 @@ export interface Module {
   isSupreme?: boolean;
 }
 
+export interface EquipmentItem {
+  id: string;
+  name: string;
+  cost: number;
+}
+
 export interface Skill {
   id: string;
   name: string;
@@ -60,7 +66,7 @@ export interface Path {
   isHybrid: boolean;
   energies: EnergyType[];
   concepts: string[];
-  equipment: string;
+  equipment: EquipmentItem[];
   affinityCategories: string[];
   foreignCategories: string[];
   skills: Skill[];
